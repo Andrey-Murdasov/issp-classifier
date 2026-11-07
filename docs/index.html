@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISSP & PEQS Galaxy Quick Check | Murdasov Research</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 20px; background: #0f172a; color: #f1f5f9; }
+        .container { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
+        h3 { color: #60a5fa; margin-top: 0; }
+        h4 { color: #cbd5e1; margin: 20px 0 10px; font-size: 1em; }
+        label { display: block; margin: 15px 0 5px; color: #cbd5e1; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #475569; border-radius: 6px; background: #334155; color: white; box-sizing: border-box; }
+        button { background: #3b82f6; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 20px; }
+        button:hover { background: #2563eb; }
+        .result { margin-top: 25px; padding: 15px; border-radius: 8px; background: #10b981; color: #022c22; font-weight: bold; display: none; }
+        .class-i { background: #ef4444; color: #450a0a; }
+        .class-i-pure { background: #dc2626; color: #fef2f2; } /* Красный темнее для чистого реликта */
+        .class-i-exo { background: #f97316; color: #431407; } /* Оранжевый для экзогенного */
+        .class-ii { background: #f59e0b; color: #451a03; }
+        .class-iii { background: #10b981; color: #022c22; }
+        .footer { margin-top: 25px; font-size: 0.9em; color: #94a3b8; text-align: center; }
+        a { color: #93c5fd; }
+        .hidden { display: none; }
+        .step { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px dashed #475569; }
+        .step:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>ISSP & PEQS Galaxy Quick Check</h3>
+        <p>Enter galaxy parameters to determine its ISSP class based on K = σ² / R<sub>eff</sub>, refined by the PEQS environmental filter.</p>
+        
+        <div class="step">
+            <h4>Step 1: Basic Kinematics</h4>
+            <label for="sigma">Velocity Dispersion, σ (km/s):</label>
+            <input type="number" id="sigma" placeholder="e.g., 250" min="0" step="any">
+            
+            <label for="reff">Effective Radius, R<sub>eff</sub> (kpc):</label>
+            <input type="number" id="reff" placeholder="e.g., 1.5" min="0" step="any">
+        </div>
+
+        <div class="step">
+            <h4>Step 2: Environmental Context (PEQS)</h4>
+            <p style="font-size:0.9em; color:#94a3b8; margin-bottom:15px;">For accurate classification of high-K objects.</p>
+            <label for="neighbors">Number of significant neighbors within ~500 kpc (N<sub>n</sub>):</label>
+            <select id="neighbors">
+                <option value="0">0 (Isolated)</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5 or more</option>
+            </select>
+        </div>
+        
+        <button onclick="calculate()">Calculate ISSP & PEQS Class</button>
+        
+        <div id="result" class="result"></div>
+        
+        <div class="footer">
+            <p>
+                <strong>ISSP (Information Self-Sufficiency Principle)</strong> classifies by gravitational density K.<br>
+                <strong>PEQS (Principle of Exogenous Quasi-Self-sufficiency)</strong> refines Class I using environmental context.<br>
+                Method: Murdasov, A.S. (2026). ISSP Classifier v4.3.1 with PEQS.<br>
+                © 2026 A. Murdasov. <a href="https://andrey-murdasov.github.io/murdasov-research/">Portfolio</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            // Step 1: Get basic parameters
+            const sigma = parseFloat(document.getElementById('sigma').value);
+            const reff = parseFloat(document.getElementById('reff').value);
+            
+            if (!sigma || !reff || sigma <= 0 || reff <= 0) {
+                alert('Please enter valid positive numbers for σ and R_eff.');
+                return;
+            }
+            
+            // Step 2: Get environmental context (PEQS)
+            const neighbors = parseInt(document.getElementById('neighbors').value);
+            
+            // Core calculation
+            const K = (sigma * sigma) / reff;
+            
+            // ISSP Base Classification
+            let baseClass, baseText, baseCode, resultClass;
+            
+            if (K > 30000) {
+                baseClass = 'class-i';
+                baseText = 'I (Self-Sufficient)';
+                baseCode = 'UCMG-type, DM-deficient';
+                // PEQS Refinement for Class I
+                if (neighbors === 0) {
+                    resultClass = 'class-i-pure';
+                    baseText = 'I (Pure Relic)';
+                    baseCode = 'Isolated high-K relic. True self-sufficiency.';
+                } else {
+                    resultClass = 'class-i-exo';
+                    baseText = 'I (Exogenous Quasi-PI)';
+                    baseCode = 'High-K likely induced by external compression.';
+                }
+            } else if (K > 1000) {
+                resultClass = 'class-ii';
+                baseClass = 'class-ii';
+                baseText = 'II (Balanced)';
+                baseCode = 'Normal elliptical, moderate DM';
+            } else {
+                resultClass = 'class-iii';
+                baseClass = 'class-iii';
+                baseText = 'III (DM-Dependent)';
+                baseCode = 'UDG-type, DM-dominated';
+            }
+            
+            // Build result text
+            const resultDiv = document.getElementById('result');
+            let resultHTML = `
+                <strong>ISSP Result:</strong><br>
+                K = ${K.toLocaleString('en-US', {maximumFractionDigits: 0})} (km/s)²/kpc<br>
+                Base ISSP Class: <strong>${baseText}</strong><br>
+                <small>${baseCode}</small>
+            `;
+            
+            // Add PEQS note if applicable
+            if (baseClass === 'class-i') {
+                resultHTML += `<br><br><strong>PEQS Context:</strong><br>`;
+                resultHTML += `Neighbors within 500 kpc: <strong>N<sub>n</sub> = ${neighbors}</strong><br>`;
+                if (neighbors === 0) {
+                    resultHTML += `<small>Environment: Isolated → Classification confirmed as <strong>Pure Relic</strong>.</small>`;
+                } else {
+                    resultHTML += `<small>Environment: Has neighbors → Classification refined to <strong>Exogenous Quasi-PI</strong> (externally compressed).</small>`;
+                }
+            }
+            
+            resultDiv.innerHTML = resultHTML;
+            resultDiv.className = `result ${resultClass}`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+
+	<!-- Yandex.Metrika counter -->
+	<script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=110301097', 'ym');
+
+    ym(110301097, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+	</script>
+	<noscript><div><img src="https://mc.yandex.ru/watch/110301097" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+	<!-- /Yandex.Metrika counter -->
+
+</body>
+</html>
